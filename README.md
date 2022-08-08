@@ -33,7 +33,7 @@ You should be able to simply run:
 
 ## Optional Arguments
 
-Normally, there should be no need to use any of the optional arguments. If you're having trouble with the tool, you can run `python2 groomer.py -h` to get the help page:
+Normally, there should be no need to use any of the optional arguments. If you're having trouble with the tool, you can run `python groomer.py -h` to get the help page:
 
 ```
 usage: groomer.py [-h] [-i MAX_AMT_INPUT] [-n MAX_NUM_TX]
