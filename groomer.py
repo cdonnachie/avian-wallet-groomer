@@ -1,6 +1,7 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 # simple cleanup script, 2012-12-25 <greg@xiph.org>
 # 2018: updated by brianmct
+# 2022: updated by cdonnachie
 import sys
 import operator
 from decimal import *
@@ -10,25 +11,25 @@ import argparse
 parser = argparse.ArgumentParser(description='This script generates transaction(s) to cleanup your wallet.\n'
 'It looks for the single addresses which have the most small confirmed payments made to them and merges\n'
 'all those payments, along with those for any addresses which are all tiny payments, to a single txout.\n'
-'It must connect to raven to inspect your wallet and to get fresh addresses to pay your coin to.')
+'It must connect to avian to inspect your wallet and to get fresh addresses to pay your coin to.')
 parser.add_argument('rpc_server', type=str, help='Wallet RPC server info. '
-                    'Example: http://user:password@127.0.0.1:8766')
+                    'Example: http://user:password@127.0.0.1:7896')
 parser.add_argument('-i', '--max_amt_input', type=float, default=25,
-  help='The maximum input amount of a single transaction to consolidate (default: 25 RVN)')
+  help='The maximum input amount of a single transaction to consolidate (default: 25 AVN)')
 parser.add_argument('-n', '--max_num_tx', type=int, default=500,
   help='The maximum number of transactions to consolidate at once. Lower this if you are getting a tx-size error (default: 500)')
 parser.add_argument('-o', '--max_amt_per_output', type=float, default=10000,
-  help='The maximum amount (in RVN) to send to a single output address (default: 10000 RVN)')
+  help='The maximum amount (in AVN) to send to a single output address (default: 10000 AVN)')
 parser.add_argument('-f', '--fee', type=float, default=0.001,
-  help='The amount of fees (in RVN) to use for the transaction')
+  help='The amount of fees (in AVN) to use for the transaction')
 
 args = parser.parse_args()
 
 try:
   b = AuthServiceProxy(args.rpc_server)
-  b.getinfo()
+  b.getblockchaininfo()
 except:
-  print "Couldn't connect to raven"
+  print("Couldn't connect to avian")
   exit(1)
 min_fee=Decimal(args.fee)
 
@@ -47,11 +48,11 @@ while True:
       scripts[script]=(scripts[script][0],scripts[script][1]+coin['amount'],scripts[script][0]+1)
 
   #which script has the largest number of well confirmed small but not dust outputs?
-  most_overused = max(scripts.iteritems(), key=operator.itemgetter(1))[0]
+  most_overused = max(scripts.items(), key=operator.itemgetter(1))[0]
 
   #If the best we can do doesn't reduce the number of txouts or just moves dust, give up.
   if(scripts[most_overused][2]<3 or scripts[most_overused][1]<Decimal(0.01)):
-    print "Wallet already clean."
+    print("Wallet already clean.")
     exit(0)
 
   usescripts=set([most_overused])
@@ -72,14 +73,14 @@ while True:
       txout['txid']=coin['txid']
       txout['vout']=coin['vout']
       txouts.append(txout)
-  print 'Creating tx from %d inputs of total value %s:'%(len(txouts),amt)
+  print('Creating tx from %d inputs of total value %s:'%(len(txouts),amt))
   for script in usescripts:
-    print '  Script %s has %d txins and %s RVN value.'%(script,scripts[script][2],str(scripts[script][1]))
+    print('  Script %s has %d txins and %s AVN value.'%(script,scripts[script][2],str(scripts[script][1])))
 
   out={}
   na=amt-min_fee
-  #One new output per max_amt_per_output RVN of value to avoid consolidating too much value in too few addresses.
-  # But don't add an extra output if it would have less than args.max_amt_per_output RVN.
+  #One new output per max_amt_per_output AVN of value to avoid consolidating too much value in too few addresses.
+  # But don't add an extra output if it would have less than args.max_amt_per_output AVN.
   while na>0:
     amount=min(Decimal(args.max_amt_per_output),na)
     if ((na-amount)<10):
@@ -90,23 +91,22 @@ while True:
         out[addr]=float(0)
       out[addr]+=float(amount)
     na-=Decimal(str(float(amount)))
-  print 'Paying %s RVN (%s fee) to:'%(sum([Decimal(str(out[k])) for k in out.keys()]),amt-sum([Decimal(str(out[k])) for k in out.keys()]))
+  print('Paying %s AVN (%s fee) to:'%(sum([Decimal(str(out[k])) for k in out.keys()]),amt-sum([Decimal(str(out[k])) for k in out.keys()])))
   for o in out.keys():
-    print '  %s %s'%(o,out[o])
+    print('  %s %s'%(o,out[o]))
 
   txn=b.createrawtransaction(txouts,out)
-
-  a = raw_input('Sign the transaction? y/[n]: ')
+  a = input('Sign the transaction? y/[n]: ')
   if a != 'y':
     exit(0)
 
   signed_txn=b.signrawtransaction(txn)
-  print signed_txn
-  print 'Bytes: %d Fee: %s'%(len(signed_txn['hex'])/2,amt-sum([Decimal(str(out[x])) for x in out.keys()]))
+  #print(signed_txn)
+  print('Bytes: %d Fee: %s'%(len(signed_txn['hex'])/2,amt-sum([Decimal(str(out[x])) for x in out.keys()])))
 
-  a = raw_input('Send the transaction? y/[n]: ')
+  a = input('Send the transaction? y/[n]: ')
   if a != 'y':
     exit(0)
 
   txid = b.sendrawtransaction(signed_txn['hex'])
-  print 'Transaction sent! txid: %s\n' % txid
+  print('Transaction sent! txid: %s\n' % txid)
