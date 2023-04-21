@@ -1,3 +1,3 @@
 # requirements.txt
 
-python-bitcoinrpc==0.5.0
+python-bitcoinrpc
