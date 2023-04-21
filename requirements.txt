@@ -1,3 +1,4 @@
 # requirements.txt
 
 python-bitcoinrpc
+pydantic==1.9.1
