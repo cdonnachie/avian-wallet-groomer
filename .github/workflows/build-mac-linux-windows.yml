@@ -38,7 +38,12 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt 
-          apt install fuse3 && apt install libfuse3-dev
+      
+      - name: Install LinuxDependencies
+        if: startsWith(matrix.os,'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install fuse3 && sudo apt-get install libfuse3-dev
 
       # Build python script into a stand-alone exe
       - uses: jimkring/python-script-to-exe@v0.2.0
